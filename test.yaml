@@ -1,0 +1,27 @@
+# Example YAML configuration file
+server:
+  host: "localhost"
+  port: 8080
+  features:
+    enable_feature_x: true
+    enable_feature_y: false
+
+# 数据库
+database:
+  type: "mysql"
+  host: "127.0.0.1"
+  port: 3306
+  username: "root"
+  password: "password"
+  name: "example_db"
+
+# 日志文件
+logging:
+  level: "info"
+  file: "/var/log/app.log"
+
+# API配置
+api:
+  endpoint: "/api/v1/resource"
+  timeout: 30
+  retries: 3

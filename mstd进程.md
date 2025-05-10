@@ -213,3 +213,35 @@ int main(){
 }
 ```
 
+
+
+## 2025.5.10
+
+### 读取`YAML`配置文件模块(代码案例)
+
+```cpp
+// 读取yaml配置文件
+mstd::YamlReader reader("test.yaml");
+auto server = reader.getObject("server");
+std::string host = server.getValue<std::string>("host");
+int port = server.getValue<int>("port");
+// 读取嵌套对象
+auto features = server.getObject("features");
+std::cout << "Server_Features_enable_feature_x:" << features.getValue<bool>("enable_feature_x") << std::endl;
+std::cout << "Server_Features_enable_feature_y:" << features.getValue<bool>("enable_feature_y") << std::endl;
+
+std::cout << "Server_Host: " << host << std::endl;
+std::cout << "Server_Port: " << port << std::endl;
+
+auto database = reader.getObject("database");
+std::string db_host = database.getValue<std::string>("host");
+int db_port = database.getValue<int>("port");
+std::string db_user = database.getValue<std::string>("username");
+std::string db_password = database.getValue<std::string>("password");
+std::string db_type = database.getValue<std::string>("type");
+std::cout << "Database_Host: " << db_host << std::endl;
+std::cout << "Database_Port: " << db_port << std::endl;
+std::cout << "Database_User: " << db_user << std::endl;
+std::cout << "Database_Password: " << db_password << std::endl;
+std::cout << "Database_Type: " << db_type << std::endl;
+```
