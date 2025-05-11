@@ -60,16 +60,13 @@ auto invoke_impl(F&& f, Tuple& t, Args&&... args, std::index_sequence<I...>) {
     return f(std::get<I>(t)..., std::forward<Args>(args)...);
 }
 
-template<typename F, typename Tuple, typename... Args>
-auto invoke_impl(F&& f, Tuple& t, Args&&... args) {
-    return invoke_impl(std::forward<F>(f), t, std::forward<Args>(args)..., std::make_index_sequence<std::tuple_size<Tuple>::value>{});
-}
 
 // 实现类似std::bind的功能
 template<typename F, typename... BoundArgs>
 auto bind(F&& f, BoundArgs&&... boundArgs) {
     return [f = std::forward<F>(f), boundArgs = std::make_tuple(std::forward<BoundArgs>(boundArgs)...)](auto&&... remainingArgs) mutable {
-        return invoke_impl(f, boundArgs, std::forward<decltype(remainingArgs)>(remainingArgs)...);
+        return invoke_impl(f, boundArgs, std::forward<decltype(remainingArgs)>(remainingArgs)..., 
+                           std::make_index_sequence<std::tuple_size<decltype(boundArgs)>::value>{});
     };
 }
 
