@@ -101,8 +101,8 @@ private:
         std::vector<std::map<std::string, std::any>*> stack;
         stack.push_back(&data); // 根层级
         int previousIndent = 0;
-        std::string currentArrayKey;
         std::vector<std::vector<std::map<std::string, std::any>>*> array_stack;
+        std::vector<int> array_indent_stack; // 记录每个数组的起始缩进
 
         while (std::getline(file, line)) {
             int currentIndent = countIndent(line);
@@ -111,9 +111,10 @@ private:
 
             // 处理缩进，退出嵌套层级
             while (currentIndent < previousIndent) {
-                if (!array_stack.empty() && array_stack.back()->empty()) {
+                // 只有当当前缩进小于数组起始缩进时才pop
+                while (!array_indent_stack.empty() && currentIndent < array_indent_stack.back()) {
                     array_stack.pop_back();
-                    currentArrayKey.clear();
+                    array_indent_stack.pop_back();
                 }
                 if (stack.size() > 1) stack.pop_back();
                 previousIndent -= 2;
@@ -127,17 +128,21 @@ private:
                     throw std::runtime_error("YAML array '-' without a parent key");
                 }
                 std::map<std::string, std::any> obj;
+                array_stack.back()->push_back(obj);
+                stack.push_back(&array_stack.back()->back());
                 if (!item.empty()) {
                     size_t delimiterPos = item.find(":");
                     if (delimiterPos == std::string::npos) throw std::runtime_error("Invalid array item: " + item);
                     std::string key = item.substr(0, delimiterPos);
                     std::string value = item.substr(delimiterPos + 1);
                     trim(key); trim(value);
-                    obj[key] = value;
+                    if (value.empty()) {
+                        (*stack.back())[key] = std::map<std::string, std::any>();
+                        stack.push_back(&std::any_cast<std::map<std::string, std::any>&>((*stack.back())[key]));
+                    } else {
+                        (*stack.back())[key] = value;
+                    }
                 }
-                array_stack.back()->push_back(obj);
-                // 只在本次数组元素作用域内push到stack，处理嵌套
-                stack.push_back(&array_stack.back()->back());
                 previousIndent = currentIndent;
                 continue;
             }
@@ -159,18 +164,18 @@ private:
                     if (nextLine[0] == '-') isArray = true;
                     break;
                 }
-                file.clear(); // 清除eof和fail标志
+                file.clear();
                 file.seekg(pos);
                 if (isArray) {
                     (*stack.back())[key] = std::vector<std::map<std::string, std::any>>();
                     array_stack.push_back(&std::any_cast<std::vector<std::map<std::string, std::any>>&>((*stack.back())[key]));
-                    currentArrayKey = key;
+                    array_indent_stack.push_back(currentIndent + 2); // 记录数组的起始缩进
                 } else {
                     (*stack.back())[key] = std::map<std::string, std::any>();
                     stack.push_back(&std::any_cast<std::map<std::string, std::any>&>((*stack.back())[key]));
                 }
             } else {
-                // 支持基础类型数组（如 servers: [1,2,3]）
+                // 支持基础类型数组（如 arr: [1,2,3]）
                 if (value.front() == '[' && value.back() == ']') {
                     std::vector<std::any> arr;
                     std::string inner = value.substr(1, value.size() - 2);
@@ -182,7 +187,6 @@ private:
                     }
                     (*stack.back())[key] = arr;
                 } else {
-                    // 普通key: value
                     if (value == "true" || value == "false") {
                         stack.back()->emplace(key, value == "true");
                     } else if (value.find_first_not_of("0123456789") == std::string::npos) {
