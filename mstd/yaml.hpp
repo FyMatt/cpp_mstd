@@ -86,6 +86,11 @@ public:
         }
     }
 
+    // 检查是否有某个key
+    bool hasKey(const std::string& key) const {
+        return data.find(key) != data.end();
+    }
+
 private:
     std::map<std::string, std::any> data;
 
